@@ -80,15 +80,8 @@ plsbeta_1 <- plsRbeta(
   modele = "pls-beta", verbose = FALSE
 )
 
-# Preprocess test data for PLS-beta, using only selected variables
-df_pls_test_1 <- df_non_growing_test %>% 
-  mutate(intercept = 1) %>% 
-  select(intercept, all_of(selected_vars_1))
-
-# Compute predictions using the PLS-beta model
-logit_values_1 <- as.matrix(df_pls_test_1) %*% as.vector(plsbeta_1$Coeffs)
-plsbeta_prediction_1 <- exp(logit_values_1) / (1 + exp(logit_values_1)) * 100
-
+# Prediction using the best PLS-beta model with a custom function
+plsbeta_prediction_1 <- predict_plsRbeta(plsbeta_1, df_non_growing_test)
 # Evaluate model performance (MAE, RMSE)
 get_mae_rmse(plsbeta_prediction_1, df_non_growing_test$BareGround)
 
@@ -132,14 +125,8 @@ plsbeta_2 <- plsRbeta(
   modele = "pls-beta", verbose = FALSE
 )
 
-# Preprocess test data for PLS-beta, using only selected variables
-df_pls_test_2 <- df_non_growing_test %>% 
-  mutate(intercept = 1) %>% 
-  select(intercept, all_of(selected_vars_2))
-
-# Compute predictions using the PLS-beta model
-logit_values_2 <- as.matrix(df_pls_test_2) %*% as.vector(plsbeta_2$Coeffs)
-plsbeta_prediction_2 <- exp(logit_values_2) / (1 + exp(logit_values_2)) * 100
+# Prediction using the best PLS-beta model with a custom function
+plsbeta_prediction_2 <- predict_plsRbeta(plsbeta_2, df_non_growing_test)
 
 ####### vegetation indicies + bands + minerals ###############
 # Select predictor variables
@@ -175,14 +162,8 @@ plsbeta_3 <- plsRbeta(
   modele = "pls-beta", verbose = FALSE
 )
 
-# Preprocess test data for PLS-beta, using only selected variables
-df_pls_test_3 <- df_non_growing_test %>% 
-  mutate(intercept = 1) %>% 
-  select(intercept, all_of(selected_vars_3))
-
-# Compute predictions using the PLS-beta model
-logit_values_3 <- as.matrix(df_pls_test_3) %*% as.vector(plsbeta_3$Coeffs)
-plsbeta_prediction_3 <- exp(logit_values_3) / (1 + exp(logit_values_3)) * 100
+# Prediction using the best PLS-beta model with a custom function
+plsbeta_prediction_3 <- predict_plsRbeta(plsbeta_3, df_non_growing_test)
 
 ####### vegetation indicies + bands + minerals + topography ###############
 # Select predictor variables
@@ -220,15 +201,8 @@ plsbeta_4 <- plsRbeta(
   modele = "pls-beta", verbose = FALSE
 )
 
-# Preprocess test data for PLS-beta, using only selected variables
-df_pls_test_4 <- df_non_growing_test %>% 
-  mutate(intercept = 1) %>% 
-  select(intercept, all_of(selected_vars_4))
-
-# Compute predictions using the PLS-beta model
-logit_values_4 <- as.matrix(df_pls_test_4) %*% as.vector(plsbeta_4$Coeffs)
-plsbeta_prediction_4 <- exp(logit_values_4) / (1 + exp(logit_values_4)) * 100
-
+# Prediction using the best PLS-beta model with a custom function
+plsbeta_prediction_4 <- predict_plsRbeta(plsbeta_4, df_non_growing_test)
 
 ######### comparison #########
 # obs vs pred plot
@@ -240,7 +214,7 @@ for(pred in plsbeta_pred_list){
 }
 
 # a table for RMSE and MAE
-df_pls_rmse <- get_rmse_df(plsbeta_pred_list)
+df_pls_rmse <- get_rmse_df(plsbeta_pred_list, df_non_growing_test$BareGround)
 
 ######### Export ############
 models <- list(plsbeta_1, plsbeta_2, plsbeta_3, plsbeta_4)
@@ -260,4 +234,9 @@ for(pred in plsbeta_pred_list){
 }
 dev.off()  
 
-
+png("./Script/figures/plsbeta_horizontal.png", width = 1000, height = 280)
+  par(mfrow = c(1,4))
+  for(pred in plsbeta_pred_list){
+    plot_obs_pred(df_non_growing_test$BareGround,pred)
+  }
+dev.off()  

@@ -2,7 +2,6 @@ library(tidyverse)
 library(pls)
 library(plsdepot)
 library(plsVarSel)
-library(plsRglm)
 
 ############ Load CSV file ##############
 df_ground_photo <- read.csv("./CSV/ground_level_photo_extracted.csv") %>% 
@@ -92,7 +91,7 @@ for(pred in pls_pred_list){
 }
 
 # a table for RMSE and MAE
-df_pls_rmse <- get_rmse_df(pls_pred_list)
+df_pls_rmse <- get_rmse_df(pls_pred_list, df_non_growing_test$BareGround)
 
 ######### Export ############
 models <- list(pls_1, pls_2, pls_3, pls_4)
@@ -106,7 +105,14 @@ write.csv(df_pls_rmse, "./Script/csv/pls_rmse.csv")
 
 # plot
 png("./Script/figures/pls.png", width = 600, height = 700)
-  par(mfrow = c(2,2))
+par(mfrow = c(2,2))
+for(pred in pls_pred_list){
+  plot_obs_pred(df_non_growing_test$BareGround,pred)
+}
+dev.off()  
+
+png("./Script/figures/pls_horizontal.png", width = 1000, height = 280)
+  par(mfrow = c(1,4))
   for(pred in pls_pred_list){
     plot_obs_pred(df_non_growing_test$BareGround,pred)
   }

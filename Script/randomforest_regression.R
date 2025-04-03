@@ -85,7 +85,7 @@ for(pred in rf_pred_list){
 }
 
 # a table for RMSE and MAE
-df_rf_rmse <- get_rmse_df(rf_pred_list)
+df_rf_rmse <- get_rmse_df(rf_pred_list, df_non_growing_test$BareGround)
 
 ######### Export ############
 models <- list(rf_1, rf_2, rf_3, rf_4)
@@ -105,3 +105,9 @@ for(pred in rf_pred_list){
 }
 dev.off()  
 
+png("./Script/figures/rf_horizontal.png", width = 1000, height = 280)
+par(mfrow = c(1,4))
+for(pred in rf_pred_list){
+  plot_obs_pred(df_non_growing_test$BareGround,pred)
+}
+dev.off()  
