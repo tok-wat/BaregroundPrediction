@@ -144,7 +144,7 @@ run_rf <- function(dataframe, predictors, tuned_rfe){
   return(temp_rf_model)
 }
 
-########## Functions for transect_data__validation #############
+########## Functions for transect_data_validation #############
 plot_slope_flat <- function(dataframe, valid_vec){
   df_temp <- dataframe %>% 
     select(BareGround,Notes) %>% 
@@ -185,4 +185,56 @@ plot_4plots_slope_flat <- function(pred_list, dataframe){
   for(pred in pred_list){
     plot_slope_flat(dataframe,pred)
   }
+}
+
+######### Functions for bootstrapping ##################
+run_boot <- function(vec_pred,vec_test){
+  temp_df <- data.frame(vec_pred,vec_test)
+  colnames(temp_df) <- c("pred", "obs")
+  temp_func <- function(data,i){
+    x <- data[i,"obs"]
+    y <- data[i,"pred"]
+    rmse <- sqrt(mean((x - y)^2))
+    mae <- mean(abs(x - y))
+    temp_lm <-lm(y ~ x)
+    r_sq <- summary(temp_lm)$r.squared
+    out_vec <- c(mae, rmse,r_sq)
+    names(out_vec) <- c("MAE", "RMSE","R^2")
+    return(out_vec)
+  }
+  temp_boot <- boot(data=temp_df, 
+                    statistic=temp_func,
+                    R=1000,
+                    stype="i")
+  temp_mae_ci <- boot.ci(temp_boot, type="bca", index=1) %>% 
+    get_ci(type="bca")
+  temp_rmse_ci <- boot.ci(temp_boot, type="bca", index=2) %>% 
+    get_ci(type="bca")
+  temp_r2_ci <- boot.ci(temp_boot, type="bca", index=3) %>% 
+    get_ci(type="bca")
+  
+  vec_mae <- c(temp_boot$t0[1], mean(temp_boot$t[,1]), temp_mae_ci) %>% 
+    unlist()
+  vec_rmse <- c(temp_boot$t0[2], mean(temp_boot$t[,2]), temp_rmse_ci) %>% 
+    unlist()
+  vec_r2 <- c(temp_boot$t0[3], mean(temp_boot$t[,3]), temp_r2_ci) %>% 
+    unlist()
+  
+  out_df <- data.frame(vec_mae, vec_rmse, vec_r2) %>% 
+    t()
+  colnames(out_df) <- c("Original", "Mean_boot", "bca_Lower","bca_Upper")
+  rownames(out_df) <- c("MAE", "RMSE","R^2")
+  return(out_df)
+}
+# create a dataframe suitable to draw a plot
+get_dotplot_df <- function(pred_list, vec_test){
+  out_df <- data.frame(matrix(rep(NA, 5), nrow=1))[numeric(0), ]
+  colnames(out_df) <- c("Original", "Mean_boot", "bca_Lower","bca_Upper", "model")
+  for(i in 1:length(pls_valid_list)){
+    temp_df <- run_boot(pred_list[[i]], df_transect$BareGround) %>% 
+      as.data.frame() %>% 
+      mutate(model=paste0("model_",i))
+    out_df <- rbind(out_df,temp_df)
+  }
+  return(out_df)
 }
