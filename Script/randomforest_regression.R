@@ -14,7 +14,7 @@ head(df_ground_photo)
 source("./Script/functions.R")
 
 bands <- c("blue","green","red","nir","swir1","swir2")
-vi <- c("bsi","evi","exg","msavi","ndmi","ndvi","osavi","satvi","savi","swirRatio")
+vi <- c("bsi","evi","exg","msavi",'nbr',"ndmi","ndvi","osavi","satvi","savi","swirRatio")
 precipitation <- c("X0_2013_precipitation", "X10_2023_precipitation", "X11_2024_precipitation", "X1_2014_precipitation",  
                    "X2_2015_precipitation", "X3_2016_precipitation", "X4_2017_precipitation", "X5_2018_precipitation",  
                    "X6_2019_precipitation", "X7_2020_precipitation", "X8_2021_precipitation", "X9_2022_precipitation" )
@@ -111,3 +111,4 @@ for(pred in rf_pred_list){
   plot_obs_pred(df_non_growing_test$BareGround,pred)
 }
 dev.off()  
+
