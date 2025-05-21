@@ -1,50 +1,93 @@
 library(pls)
+library(caret)
 library(tidyverse)
 library(ggplot2)
 
-############ Load CSV file ##############
+# ------------------------------------------------------------------------------
+# load necessary files
+
+# Load CSV file 
 df_historical <- read.csv("./CSV/historical_photo_extracted.csv") %>% 
   select(-c(system.index, .geo, vegType)) %>%
-  filter(Month > 4) %>% 
-  na.omit()  # 31 rows
+  na.omit()  
 
-head(df_historical)
-hist(df_historical$Year,breaks=1989:2013,
-     xlab="Year",
-     xlim=c(1989,2013),
-     main=NULL)
+# head(df_historical)
 
 # Load a script# LoYearad a script
 source("./Script/functions.R")
 
 # Load the model
-pls_1 <- readRDS("./Script/models/pls_1.rds")
-vi <- c("bsi","evi","exg","msavi","ndmi","ndvi","osavi","satvi","savi","swirRatio")
-predictors_1 <- c(vi)
+best_non_growing <- readRDS("./Script/models/pls_non_growing.rds")
+best_growing <- readRDS("./Script/models/pls_growing.rds")
+vi <- c("bsi","evi","exg","msavi","ndmi","ndvi","osavi","satvi","savi","swirRatio","tc_bright","tc_green","tc_wet")
 
-# Initial model prediction 
-x_pred <- predict(pls_1, df_historical[,predictors_1], ncomp=2)[,,1]/100
+# ------------------------------------------------------------------------------
+# non-growing season
+df_historical_non_growing <- df_historical %>% 
+  filter(Month > 4) # 29 rows
 
-data.frame(x_pred, df_historical$BareGround) %>% 
-  head()
-
-get_mae_rmse(x_pred*100, df_historical$BareGround)
-plot_slope_flat(df_historical, x_pred*100)
-mtext(adj=0, line=-1,padj=3, paste0("  MAE: ", round(get_mae_rmse(x_pred*100, df_historical$BareGround)[1],2)))
-mtext(adj=0, line=-2,padj=3, paste0("  RMSE: ", round(get_mae_rmse(x_pred*100, df_historical$BareGround)[2],2)))
+hist_non_growing <- predict(best_non_growing, df_historical_non_growing)
+plot_obs_pred(df_historical_non_growing$BareGround, hist_non_growing)
 
 # residuals or prediction error
-data.frame(x_pred, df_historical$BareGround) %>% 
-  mutate(pred_error = x_pred*100-x_pred-df_historical.BareGround) %>% 
-  mutate(Year = df_historical$Year) %>%
-  mutate(Month = df_historical$Month) %>% 
+data.frame(hist_non_growing, df_historical_non_growing$BareGround) %>% 
+  mutate(pred_error = hist_non_growing-df_historical_non_growing.BareGround) %>% 
+  mutate(Year = df_historical_non_growing$Year) %>%
+  mutate(Month = df_historical_non_growing$Month) %>% 
   select(pred_error, Year, Month) %>% 
   plot()
 
-# extracting coefficients 
-extract_coefficients <- function(plsmodel,ncomp){
-  std_coef <- coef(plsmodel, type = "original", ncomp = ncomp, intercept = TRUE)
-  unstd_coef <- c(std_coef[1], std_coef[2:nrow(std_coef)]/plsmodel$scale)
-  return(unstd_coef)
-}
-extract_coefficients(pls_1, 2)  
+# ------------------------------------------------------------------------------
+# growing season
+df_historical_growing <- df_historical %>% 
+  filter(Month < 5) # 19 rows
+
+# # log transformation
+# trans_vars <- func_log_transform(sf_growing, vi)[[2]] # "bsi","evi","msavi", "ndvi", "osavi", "satvi","savi","swirRatio","tc_bright","tc_green" 
+# add_log <- func_log_transform(sf_growing, vi)[[4]] # 0.367
+# neg_var_names <- func_log_transform(sf_growing, vi)[[5]] # "bsi", "exg" , "ndmi" , "satvi" , "tc_wet"
+# 
+# df_historical_growing_log <- df_historical_growing %>% 
+#   mutate(across(all_of(neg_var_names), ~ .x + add_log)) %>%
+#   mutate(across(all_of(trans_vars), log))
+
+hist_growing <- predict(best_growing, df_historical_growing)
+plot_obs_pred(df_historical_growing$BareGround, hist_growing)
+
+# residuals or prediction error
+data.frame(hist_growing, df_historical_growing$BareGround) %>% 
+  mutate(pred_error = hist_growing-df_historical_growing.BareGround) %>% 
+  mutate(Year = df_historical_growing$Year) %>%
+  mutate(Month = df_historical_growing$Month) %>% 
+  select(pred_error, Year, Month) %>% 
+  plot()
+
+#-------------------------------------------------------------------------------
+# Export Graphs
+
+# export as png files
+png("./Script/figures/historical_non_growing.png", width = 1500, height = 1600, res=300)  
+plot_obs_pred(df_historical_non_growing$BareGround, hist_non_growing)
+dev.off() 
+
+png("./Script/figures/historical_growing.png", width = 1500, height = 1600, res=300)  
+plot_obs_pred(df_historical_growing$BareGround, hist_growing)
+dev.off() 
+
+png("./Script/figures/historical_photos_non_growing.png", width = 1500, height = 1000, res=300)  
+hist(df_historical_non_growing$Year,breaks=1989:2013,
+     xlab="Year",
+     ylab="Numbers of Photographs",
+     xlim=c(1989,2015),
+     ylim=c(0,15),
+     main=NULL)
+dev.off()
+
+png("./Script/figures/historical_photos_growing.png", width = 1500, height = 1000, res=300)  
+hist(df_historical_growing$Year,breaks=1989:2013,
+     xlab="Year",
+     ylab="Numbers of Photographs",
+     xlim=c(1989,2015),
+     ylim=c(0,15),
+     main=NULL)
+dev.off()
